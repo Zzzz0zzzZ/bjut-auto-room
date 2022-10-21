@@ -7,15 +7,31 @@
 import pandas as pd
 import numpy as np
 
-room_time_header  = ["8-9", "9-10", "10-11", "11-12", "12-13", "13-14", "14-15", "15-16", "16-17", "17-18", "18-19", "19-20", "20-21"]
+######################################### 测试用 ###########################################
+room_time_header = [f'{x}-{x+1}' for x in range(8,21)]
+room_time_header_idx = [x+1 for x in range(13)]
 
+print(room_time_header)
+print(room_time_header_idx)
+
+DATA = pd.read_csv('./test_data.csv').values.tolist()
+with open('./user_config.txt', encoding='utf-8') as f:
+    user_config = eval(f.read())
+##########################################################################################
+
+# 使用：实例化类(传入data数据, 二维list) -> 调用get_result()方法, 接收两个返回值
 class ChooseRoom:
-    def __init__(self):
-        self.data = pd.read_csv('./test_data.csv')
+    def __init__(self, data:list):
+        self.data = data
         self.dp = self.get_dp()
+        self.chosen_list = self.convert_dp()
 
     def get_dp(self):
-        time_data = self.data.values.tolist()
+        '''
+        获取dp数组
+        :return:
+        '''
+        time_data = self.data
         dp_all = []
         # 遍历每一个房间, 产生dp表, 用于结果选择
         for room in time_data:
@@ -39,19 +55,64 @@ class ChooseRoom:
 
         return dp_all
 
-    def get_result(self):
+    def convert_dp(self):
         '''
-        返回：一个数和一个list --- 教室NUMBER, 选择哪几个下标[list]
+        返回：一个字典列表，代表所有研讨室的预约指导
         :return:
         '''
+        chosen_list = []
+
         for room in self.dp:
             max_idx = np.argmax(room)
             max_num = room[max_idx]
-            print(room_time_header[max_idx-max_num+1 : max_idx+1])
-            print(max_idx)
+
+            if max_num >= 4:
+                sub_chosen_list = room_time_header_idx[max_idx-4+1 : max_idx+1]
+            elif max_num > 0:
+                sub_chosen_list = room_time_header_idx[max_idx-max_num+1 : max_idx+1]
+            else:
+                sub_chosen_list = []
+            chosen_list.append({
+                "chosen_num": len(sub_chosen_list),
+                "chosen_list": sub_chosen_list
+            })
+        print(chosen_list)
+        return  chosen_list
+
+    def get_result(self):
+        '''
+        返回值第一个代表：选择第几个研讨室。编号按照网页html规则，第一个研讨室为1
+        返回值第二个代表：选择哪几个时间段。根据css选择器 nth-child(i)规则，也是从1开始的
+        使用的时候直接把这两个值传入find_element()参数即可 [nth-child要根据list返回值做循环]
+        :return: int, list
+        '''
+        final_choose_room = 0
+        final_choose_time = []
+        nums = [x["chosen_num"] for x in self.chosen_list]
+        four_time_room = []
+
+        for idx, num in enumerate(nums):
+            if num == 4:
+                four_time_room.append(idx)
+        user_prefered = user_config["prefer_room"]
+        print(user_prefered)
+
+        for up in user_prefered:
+            if user_config["room_list"][up]-3 in four_time_room:
+                final_choose_room = user_config["room_list"][up]
+                final_choose_time = self.chosen_list[final_choose_room-3]["chosen_list"]
+                print("$"*100)
+                print(final_choose_room, final_choose_time)
+                print("$"*100)
+                break
+        print(four_time_room)
+
+        return final_choose_room, final_choose_time
 
 
-
+######################################### 测试用 ###########################################
 if __name__ == "__main__":
-    a = ChooseRoom()
-    a.get_result()
+    a = ChooseRoom(data=DATA)
+    x, y = a.get_result()
+    print(x, y)
+###########################################################################################
