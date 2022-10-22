@@ -43,6 +43,7 @@ time.sleep(2)
 
 # 切换到Iframe页面，很关键，否则找不到元素 (登陆框)
 web.switch_to.frame('loginIframe')
+time.sleep(0.5)
 
 try:
     # 输入信息登录
@@ -116,8 +117,12 @@ try:
     web.find_element(By.XPATH, '//*[@id="app"]/div/div[2]/div[2]/div[2]/div[2]/div[3]/button').click()
     time.sleep(2)
 
+    # 输出预约信息
+    print(
+        f'INFO         {str(datetime.datetime.now())[:-7]}        预约房间号:    {list(filter(lambda k: user_config["room_list"][k] == room_choose, user_config["room_list"]))[0]}        时间段:    {time_list_info}')
+
     # 保存预约成功截图
-    web.save_screenshot(f'./{str(datetime.datetime.now())[:-7]}.png')
+    web.save_screenshot(f'./voucher/{str(datetime.datetime.now())[:-7]}.png')
     time.sleep(1)
 
     # 退出浏览器
@@ -126,9 +131,7 @@ try:
     # 结束
     end_time = time.perf_counter()
 
-    # 输出预约信息
-    print(f'INFO         {str(datetime.datetime.now())[:-7]}        预约房间号:    {list(filter(lambda k: user_config["room_list"][k] == room_choose, user_config["room_list"]))[0]}        时间段:    {time_list_info}')
-
 except Exception as e:
     print(f'ERROR        {str(datetime.datetime.now())[:-7]}        预约失败')
+    web.quit()
     raise e
