@@ -4,17 +4,12 @@
 # @File : choose_room.py
 # @Software: PyCharm
 
-import pandas as pd
 import numpy as np
 
-######################################### 测试用 ###########################################
+##########################################################################################
 room_time_header = [f'{x}-{x+1}' for x in range(8,21)]
 room_time_header_idx = [x+1 for x in range(13)]
 
-print(room_time_header)
-print(room_time_header_idx)
-
-DATA = pd.read_csv('./test_data.csv').values.tolist()
 with open('./user_config.txt', encoding='utf-8') as f:
     user_config = eval(f.read())
 ##########################################################################################
@@ -50,7 +45,6 @@ class ChooseRoom:
 
                     if room[i - 1] == 1:
                         dp[i] = dp[i - 1] + 1
-            print(dp)
             dp_all.append(dp)
 
         return dp_all
@@ -76,7 +70,7 @@ class ChooseRoom:
                 "chosen_num": len(sub_chosen_list),
                 "chosen_list": sub_chosen_list
             })
-        print(chosen_list)
+
         return  chosen_list
 
     def get_result(self):
@@ -90,29 +84,52 @@ class ChooseRoom:
         final_choose_time = []
         nums = [x["chosen_num"] for x in self.chosen_list]
         four_time_room = []
+        three_time_room = []
+        two_time_room  = []
+        one_time_room = []
 
         for idx, num in enumerate(nums):
             if num == 4:
                 four_time_room.append(idx)
-        user_prefered = user_config["prefer_room"]
-        print(user_prefered)
+            if num == 3:
+                three_time_room.append(idx)
+            if num == 2:
+                two_time_room.append(idx)
+            if num == 1:
+                one_time_room.append(idx)
 
+        user_prefered = user_config["prefer_room"]
+
+        CHOOSE_FLAG = False
         for up in user_prefered:
             if user_config["room_list"][up]-3 in four_time_room:
                 final_choose_room = user_config["room_list"][up]
                 final_choose_time = self.chosen_list[final_choose_room-3]["chosen_list"]
-                print("$"*100)
-                print(final_choose_room, final_choose_time)
-                print("$"*100)
+                CHOOSE_FLAG = True
                 break
-        print(four_time_room)
+
+        if not CHOOSE_FLAG:
+            for up in user_prefered:
+                if user_config["room_list"][up] - 3 in three_time_room:
+                    final_choose_room = user_config["room_list"][up]
+                    final_choose_time = self.chosen_list[final_choose_room - 3]["chosen_list"]
+                    CHOOSE_FLAG = True
+                    break
+
+        if not CHOOSE_FLAG:
+            for up in user_prefered:
+                if user_config["room_list"][up] - 3 in two_time_room:
+                    final_choose_room = user_config["room_list"][up]
+                    final_choose_time = self.chosen_list[final_choose_room - 3]["chosen_list"]
+                    CHOOSE_FLAG = True
+                    break
+
+        if not CHOOSE_FLAG:
+            for up in user_prefered:
+                if user_config["room_list"][up] - 3 in one_time_room:
+                    final_choose_room = user_config["room_list"][up]
+                    final_choose_time = self.chosen_list[final_choose_room - 3]["chosen_list"]
+                    CHOOSE_FLAG = True
+                    break
 
         return final_choose_room, final_choose_time
-
-
-######################################### 测试用 ###########################################
-if __name__ == "__main__":
-    a = ChooseRoom(data=DATA)
-    x, y = a.get_result()
-    print(x, y)
-###########################################################################################
