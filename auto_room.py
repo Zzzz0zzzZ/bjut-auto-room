@@ -3,9 +3,21 @@
 # @Author : 王思哲
 # @File : auto_room.py
 # @Software: PyCharm
+
 import time
+import datetime
+from choose_room import ChooseRoom
 from selenium.webdriver import Chrome
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+
+##########################################################################################
+# 设置网页html加载完后就开始执行下一步代码，不等js加载完成再执行
+desired_capabilities = DesiredCapabilities.CHROME
+desired_capabilities["pageLoadStrategy"] = "none"
+
+# ChromeDriver的位置，自行更改
+CHROME_DRIVER_PATH = './chromedriver'
 
 # 研讨室时间表头
 room_time_header = [f'{x}-{x+1}' for x in range(8,21)]
@@ -14,19 +26,22 @@ room_time_header_idx = [x+1 for x in range(13)]
 # 加载配置信息
 with open('./user_config.txt', encoding='utf-8') as f:
     user_config = eval(f.read())
+if user_config["username"] == user_config["companion"]:
+    print(f'ERROR        {str(datetime.datetime.now())[:-7]}        配置文件加载失败, 预约人与参会人不能相同!')
+    raise NameError.name
+##########################################################################################
+
+# 开始
+time_start = time.perf_counter()
 
 # 创建浏览器对象
-web = Chrome('./chromedriver')
+web = Chrome(executable_path=CHROME_DRIVER_PATH, desired_capabilities=desired_capabilities)
 
 # 访问座位预约系统，需要内网
 web.get('https://libseminarroom.bjut.edu.cn/#/login')
 time.sleep(2)
 
-redirect_url = web.current_url
-web.get(redirect_url)
-time.sleep(2)
-
-# Iframe页面，很关键，否则找不到元素 (登陆框)
+# 切换到Iframe页面，很关键，否则找不到元素 (登陆框)
 web.switch_to.frame('loginIframe')
 
 try:
@@ -36,11 +51,9 @@ try:
 
     # 点击登陆按钮
     web.find_element(By.XPATH,'/html/body/div[3]/div[2]/div[2]/div/div[2]/div[2]/div/div[7]/input').click() # 进入网站
-    time.sleep(2)
+    time.sleep(3)
 
     # 进入预约系统
-    print(web.current_url)
-
     # 选择四人研讨室
     web.find_element(By.XPATH, '//*[@id="app"]/div/div[2]/div[2]/div[1]/div[2]/div[3]/div').click()
     time.sleep(1)
@@ -74,42 +87,48 @@ try:
         # 加入总表
         all_screen_room_time.append(sgl_screen_room_time)
 
-    # 保存文件仅用于算法可行性测试
-    # write_obj = pd.DataFrame(data=all_screen_room_time)
-    # write_obj.to_csv('./test.csv', index=False, header=room_time_header, encoding='utf-8-sig')
-    # print(all_screen_room_time)
-    # print(len(all_screen_room_time))
-
-    # 实例化: 算法类 -> 获取结果  [待完成]
-    # codes
-
-    # 从算法获取 room_choose_number 和 room_choose_time
-    example_choose = 2  # 407   [测试用]
+    # 实例化: 算法类 -> 获取结果
+    chooseRoom = ChooseRoom(all_screen_room_time)
+    room_choose, choose_list = chooseRoom.get_result()
+    time_list_info = [room_time_header[x-1] for x in choose_list]
 
     # 点击房间卡片，进入预约界面
-    web.find_element(By.XPATH, f'//*[@id="app"]/div/div[2]/div[2]/div[2]/div[{example_choose}]').click()
+    web.find_element(By.XPATH, f'//*[@id="app"]/div/div[2]/div[2]/div[2]/div[{room_choose}]').click()
     time.sleep(1)
 
-
-    # 选择预约时间段, 最后改成 in [list] 形式 , 循环是 [测试用]
-    for i in range(3):
-        web.find_element(By.CSS_SELECTOR, f'#app > div > div.body-wrap > div.body-right > div.body-content > div.content-left > div.time-content > div > div:nth-child({i+5})').click()
+    # 选择预约时间段
+    for choose_time in choose_list:
+        web.find_element(By.CSS_SELECTOR, f'#app > div > div.body-wrap > div.body-right > div.body-content > div.content-left > div.time-content > div > div:nth-child({choose_time})').click()
         time.sleep(0.5)
 
     # 添加邀请人账号
     input_companion = web.find_element(By.XPATH, '//*[@id="app"]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div[1]/input').send_keys(user_config['companion'])
     web.find_element(By.XPATH, '//*[@id="app"]/div/div[2]/div[2]/div[2]/div[2]/div[1]/div[2]/div[2]/i').click()
 
-    # 选择预约类型 [待测试]
+    # 选择预约类型
     web.find_element(By.XPATH, '//*[@id="app"]/div/div[2]/div[2]/div[2]/div[1]/div[3]/div[2]/div/div[1]/input').click()
-    web.find_element(By.XPATH, '/html/body/div[2]/div[1]/div[1]/ul/li[1]/span').click()
+    time.sleep(1)
+
+    # 下拉框选择
+    web.find_element(By.XPATH, '/html/body/div[2]/div[1]/div[1]/ul/li[1]').click()
 
     # 点击确认按钮 [待完成]
-    # codes
+    web.find_element(By.XPATH, '//*[@id="app"]/div/div[2]/div[2]/div[2]/div[2]/div[3]/button').click()
+    time.sleep(2)
 
     # 保存预约成功截图
-    web.save_screenshot('./test_pic.png')
+    web.save_screenshot(f'./{str(datetime.datetime.now())[:-7]}.png')
+    time.sleep(1)
+
+    # 退出浏览器
+    web.quit()
+
+    # 结束
+    end_time = time.perf_counter()
+
+    # 输出预约信息
+    print(f'INFO         {str(datetime.datetime.now())[:-7]}        预约房间号:    {list(filter(lambda k: user_config["room_list"][k] == room_choose, user_config["room_list"]))[0]}        时间段:    {time_list_info}')
 
 except Exception as e:
-    print(web.current_url)
+    print(f'ERROR        {str(datetime.datetime.now())[:-7]}        预约失败')
     raise e
