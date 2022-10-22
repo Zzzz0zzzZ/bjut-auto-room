@@ -57,7 +57,8 @@ class ChooseRoom:
         chosen_list = []
 
         for room in self.dp:
-            max_idx = np.argmax(room)
+            reverse_room = room[::-1]
+            max_idx = len(reverse_room) - np.argmax(reverse_room) - 1
             max_num = room[max_idx]
 
             if max_num >= 4:
