@@ -41,9 +41,16 @@ web = Chrome(executable_path=CHROME_DRIVER_PATH, desired_capabilities=desired_ca
 web.get('https://libseminarroom.bjut.edu.cn/#/login')
 time.sleep(2)
 
-# 切换到Iframe页面，很关键，否则找不到元素 (登陆框)
-web.switch_to.frame('loginIframe')
-time.sleep(0.5)
+# 修复Iframe未加载，就执行切换的错误
+while True:
+    try:
+        # 切换到Iframe页面，很关键，否则找不到元素 (登陆框)
+        print(web.current_url)
+        web.switch_to.frame('loginIframe')
+        time.sleep(1)
+        break
+    except Exception as e:
+        continue
 
 try:
     # 输入信息登录
